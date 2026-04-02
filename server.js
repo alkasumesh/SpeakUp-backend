@@ -28,7 +28,8 @@ app.post("/chat", async (req, res) => {
         "X-Title": "SpeakUp AI"
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct", // ✅ stable model
+        model: "openai/gpt-3.5-turbo", // ✅ stable model
+        max_tokens: 500,
         temperature: 0.3,
         messages: [
           { role: "system", content: systemPrompt },
