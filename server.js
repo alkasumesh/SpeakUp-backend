@@ -6,10 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔐 API KEY from Render Environment
+// 🔐 API KEY from Render
 const API_KEY = process.env.API_KEY;
 
-// ✅ Test route (optional)
+// ✅ Test route
 app.get("/", (req, res) => {
   res.send("Backend working 🚀");
 });
@@ -28,8 +28,7 @@ app.post("/chat", async (req, res) => {
         "X-Title": "SpeakUp AI"
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo", // ✅ stable model
-        max_tokens: 500,
+        model: "openai/gpt-3.5-turbo",
         temperature: 0.3,
         messages: [
           { role: "system", content: systemPrompt },
@@ -40,46 +39,48 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-console.log("FULL RESPONSE:", JSON.stringify(data, null, 2));
+    console.log("FULL RESPONSE:", data);
 
-    // 🔍 Debug (check Render logs if needed)
-    console.log("OpenRouter Response:", JSON.stringify(data, null, 2));
+    // 🔴 HANDLE OPENROUTER ERROR
+    if (data.error) {
+      console.log("OPENROUTER ERROR:", data.error);
 
-    // ✅ If OpenRouter fails
-    if (!data || !data.choices) {
       return res.json({
-        reply: "⚠️ AI not responding properly. Try again.",
+        reply: "⚠️ AI error: " + data.error.message,
         hasCorrection: false
       });
     }
 
-    // ✅ Extract AI reply
+    // 🔴 HANDLE EMPTY RESPONSE
+    if (!data.choices || data.choices.length === 0) {
+      return res.json({
+        reply: "⚠️ No response from AI",
+        hasCorrection: false
+      });
+    }
+
     const raw = data.choices[0].message.content;
 
-// 🔥 Extract JSON from AI response
-let parsed;
+    // 🔥 EXTRACT JSON FROM AI RESPONSE
+    let parsed;
+    try {
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      parsed = JSON.parse(raw.substring(start, end + 1));
+    } catch {
+      parsed = {
+        reply: raw,
+        hasCorrection: false
+      };
+    }
 
-try {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  const jsonString = raw.substring(start, end + 1);
-  parsed = JSON.parse(jsonString);
-} catch (err) {
-  console.log("JSON PARSE ERROR:", err);
-  parsed = {
-    reply: raw,
-    hasCorrection: false
-  };
-}
-
-// ✅ Send correct format to frontend
-res.json(parsed);
+    res.json(parsed);
 
   } catch (error) {
-    console.log("ERROR:", error);
+    console.log("SERVER ERROR:", error);
 
     res.json({
-      reply: "⚠️ Server error. Try again.",
+      reply: "⚠️ Server error occurred",
       hasCorrection: false
     });
   }
