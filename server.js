@@ -39,6 +39,8 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
+console.log("FULL RESPONSE:", JSON.stringify(data, null, 2));
+
     // 🔍 Debug (check Render logs if needed)
     console.log("OpenRouter Response:", JSON.stringify(data, null, 2));
 
@@ -53,10 +55,24 @@ app.post("/chat", async (req, res) => {
     // ✅ Extract AI reply
     const raw = data.choices[0].message.content;
 
-    res.json({
-      reply: raw,
-      hasCorrection: false
-    });
+// 🔥 Extract JSON from AI response
+let parsed;
+
+try {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  const jsonString = raw.substring(start, end + 1);
+  parsed = JSON.parse(jsonString);
+} catch (err) {
+  console.log("JSON PARSE ERROR:", err);
+  parsed = {
+    reply: raw,
+    hasCorrection: false
+  };
+}
+
+// ✅ Send correct format to frontend
+res.json(parsed);
 
   } catch (error) {
     console.log("ERROR:", error);
