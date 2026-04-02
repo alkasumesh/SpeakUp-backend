@@ -1,20 +1,16 @@
 const express = require("express");
 const cors = require("cors");
-const fetch = require("node-fetch");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔐 API KEY from Render
 const API_KEY = process.env.API_KEY;
 
-// ✅ Test route
 app.get("/", (req, res) => {
   res.send("Backend working 🚀");
 });
 
-// ✅ MAIN CHAT ROUTE
 app.post("/chat", async (req, res) => {
   const { message, systemPrompt } = req.body;
 
@@ -41,43 +37,28 @@ app.post("/chat", async (req, res) => {
 
     console.log("FULL RESPONSE:", data);
 
-    // 🔴 HANDLE OPENROUTER ERROR
     if (data.error) {
-      console.log("OPENROUTER ERROR:", data.error);
-
       return res.json({
         reply: "⚠️ AI error: " + data.error.message,
         hasCorrection: false
       });
     }
 
-    // 🔴 HANDLE EMPTY RESPONSE
-    if (!data.choices || data.choices.length === 0) {
-      return res.json({
-        reply: "⚠️ No response from AI",
-        hasCorrection: false
-      });
-    }
+    const raw = data.choices?.[0]?.message?.content || "No response";
 
-    const raw = data.choices[0].message.content;
-
-    // 🔥 EXTRACT JSON FROM AI RESPONSE
     let parsed;
     try {
       const start = raw.indexOf("{");
       const end = raw.lastIndexOf("}");
       parsed = JSON.parse(raw.substring(start, end + 1));
     } catch {
-      parsed = {
-        reply: raw,
-        hasCorrection: false
-      };
+      parsed = { reply: raw, hasCorrection: false };
     }
 
     res.json(parsed);
 
   } catch (error) {
-    console.log("SERVER ERROR:", error);
+    console.log("REAL ERROR:", error); // 👈 THIS WILL SHOW NOW
 
     res.json({
       reply: "⚠️ Server error occurred",
@@ -86,5 +67,4 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ✅ START SERVER
 app.listen(3000, () => console.log("Server running on port 3000"));
